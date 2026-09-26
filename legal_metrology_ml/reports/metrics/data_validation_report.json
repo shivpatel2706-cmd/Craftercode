@@ -1,0 +1,9 @@
+{
+  "initial_rows": 10000,
+  "duplicate_rows": 0,
+  "invalid_capacity_rows": 0,
+  "invalid_scale_interval_rows": 0,
+  "unrecognized_instrument_type_rows": 0,
+  "anomalous_reading_rows": 0,
+  "valid_rows": 10000
+}

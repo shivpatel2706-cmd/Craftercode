@@ -1,0 +1,96 @@
+{
+  "test_catboost_metrics": {
+    "accuracy": 0.9446666666666667,
+    "precision": 0.9470499243570348,
+    "recall": 0.9287833827893175,
+    "f1_score": 0.9378277153558052,
+    "roc_auc": 0.9584138639613167,
+    "pr_auc": 0.943659599628562,
+    "false_pass_rate": 0.0712166172106825,
+    "false_fail_rate": 0.0423728813559322,
+    "false_pass_count": 48,
+    "false_fail_count": 35,
+    "total_actual_fail": 674,
+    "total_actual_pass": 826,
+    "confusion_matrix": {
+      "true_pass_pred_pass": 791,
+      "true_pass_pred_fail": 35,
+      "true_fail_pred_pass": 48,
+      "true_fail_pred_fail": 626
+    },
+    "raw_confusion_matrix": [
+      [
+        791,
+        35
+      ],
+      [
+        48,
+        626
+      ]
+    ],
+    "model_name": "CatBoost_Test"
+  },
+  "test_calibrated_catboost_metrics": {
+    "accuracy": 0.9446666666666667,
+    "precision": 0.9470499243570348,
+    "recall": 0.9287833827893175,
+    "f1_score": 0.9378277153558052,
+    "roc_auc": 0.9584138639613167,
+    "pr_auc": 0.943659599628562,
+    "false_pass_rate": 0.0712166172106825,
+    "false_fail_rate": 0.0423728813559322,
+    "false_pass_count": 48,
+    "false_fail_count": 35,
+    "total_actual_fail": 674,
+    "total_actual_pass": 826,
+    "confusion_matrix": {
+      "true_pass_pred_pass": 791,
+      "true_pass_pred_fail": 35,
+      "true_fail_pred_pass": 48,
+      "true_fail_pred_fail": 626
+    },
+    "raw_confusion_matrix": [
+      [
+        791,
+        35
+      ],
+      [
+        48,
+        626
+      ]
+    ],
+    "model_name": "Calibrated_CatBoost_Test"
+  },
+  "test_random_forest_metrics": {
+    "accuracy": 0.9413333333333334,
+    "precision": 0.9360119047619048,
+    "recall": 0.9332344213649851,
+    "f1_score": 0.9346210995542348,
+    "roc_auc": 0.9609914427975083,
+    "pr_auc": 0.9486868511007547,
+    "false_pass_rate": 0.06676557863501484,
+    "false_fail_rate": 0.05205811138014528,
+    "false_pass_count": 45,
+    "false_fail_count": 43,
+    "total_actual_fail": 674,
+    "total_actual_pass": 826,
+    "confusion_matrix": {
+      "true_pass_pred_pass": 783,
+      "true_pass_pred_fail": 43,
+      "true_fail_pred_pass": 45,
+      "true_fail_pred_fail": 629
+    },
+    "raw_confusion_matrix": [
+      [
+        783,
+        43
+      ],
+      [
+        45,
+        629
+      ]
+    ],
+    "model_name": "RandomForest_Test"
+  },
+  "selected_primary_model": "CatBoost"
+}

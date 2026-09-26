@@ -1,0 +1,53 @@
+# Model Configuration for Legal Metrology ML Verification Engine
+
+model_version: "1.0.0"
+model_name: "LegalMetrologyVerifier"
+
+random_seed: 42
+
+split:
+  test_size: 0.15
+  val_size: 0.15
+  stratify: true
+  group_by_instrument: false # Set true when multi-inspection historical instrument records exist to prevent leakage
+  grouping_column: "instrument_id"
+
+catboost:
+  iterations: 500
+  learning_rate: 0.05
+  depth: 6
+  l2_leaf_reg: 3.0
+  random_seed: 42
+  verbose: 0
+  eval_metric: "F1"
+  auto_class_weights: "Balanced"
+  early_stopping_rounds: 50
+
+random_forest:
+  n_estimators: 200
+  max_depth: 12
+  min_samples_split: 5
+  min_samples_leaf: 2
+  random_state: 42
+  class_weight: "balanced"
+  n_jobs: -1
+
+calibration:
+  enabled: true
+  method: "sigmoid" # "sigmoid" (Platt scaling) or "isotonic"
+  cv: 5
+
+decision_policy:
+  max_missing_feature_ratio: 0.15
+  rules_priority: true # High-confidence ML PASS cannot override regulatory FAIL
+  risk_threshold_pass: 0.40 # Risk score above which a PASS prediction triggers REVIEW_REQUIRED
+  confidence_threshold: 0.70 # Confidence below which prediction triggers REVIEW_REQUIRED
+  require_concordance: true # Rules engine PASS AND ML PASS required for final PASS
+
+artifact_paths:
+  catboost_model: "models/catboost_model.cbm"
+  baseline_model: "models/baseline_rf.joblib"
+  preprocessor: "models/preprocessor.joblib"
+  calibrated_model: "models/calibrated_classifier.joblib"
+  metadata: "models/model_metadata.json"
+  shap_explainer: "models/shap_explainer.joblib"

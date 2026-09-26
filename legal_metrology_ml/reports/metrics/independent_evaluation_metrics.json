@@ -1,0 +1,64 @@
+{
+  "base_catboost_metrics": {
+    "accuracy": 0.9371,
+    "precision": 0.9357529305680794,
+    "recall": 0.9234705228031146,
+    "f1_score": 0.9295711566453925,
+    "roc_auc": 0.9692751760711014,
+    "pr_auc": 0.9622262290211159,
+    "false_pass_rate": 0.07652947719688542,
+    "false_fail_rate": 0.051771117166212535,
+    "false_pass_count": 344,
+    "false_fail_count": 285,
+    "total_actual_fail": 4495,
+    "total_actual_pass": 5505,
+    "confusion_matrix": {
+      "true_pass_pred_pass": 5220,
+      "true_pass_pred_fail": 285,
+      "true_fail_pred_pass": 344,
+      "true_fail_pred_fail": 4151
+    },
+    "raw_confusion_matrix": [
+      [
+        5220,
+        285
+      ],
+      [
+        344,
+        4151
+      ]
+    ],
+    "model_name": "CatBoost_Evaluation"
+  },
+  "calibrated_metrics": {
+    "accuracy": 0.9374,
+    "precision": 0.9369776372261125,
+    "recall": 0.9228031145717464,
+    "f1_score": 0.9298363595606366,
+    "roc_auc": 0.9692751760711014,
+    "pr_auc": 0.9622262290211159,
+    "false_pass_rate": 0.07719688542825362,
+    "false_fail_rate": 0.05068119891008174,
+    "false_pass_count": 347,
+    "false_fail_count": 279,
+    "total_actual_fail": 4495,
+    "total_actual_pass": 5505,
+    "confusion_matrix": {
+      "true_pass_pred_pass": 5226,
+      "true_pass_pred_fail": 279,
+      "true_fail_pred_pass": 347,
+      "true_fail_pred_fail": 4148
+    },
+    "raw_confusion_matrix": [
+      [
+        5226,
+        279
+      ],
+      [
+        347,
+        4148
+      ]
+    ],
+    "model_name": "Calibrated_Classifier_Evaluation"
+  }
+}

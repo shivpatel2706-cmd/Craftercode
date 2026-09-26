@@ -1,0 +1,80 @@
+# Regulatory Rules Configuration for Legal Metrology Verification Engine
+# ---------------------------------------------------------------------------------------------
+# WARNING: DEMONSTRATION VALUES ONLY
+# These Maximum Permissible Error (MPE) values and verification rules are demonstration 
+# parameters designed for software architecture testing, prototype validation, and synthetic 
+# dataset simulation. They do NOT represent authoritative or official Indian Legal Metrology 
+# statutory limits. Prior to real-world deployment, replace all rule specifications with validated 
+# schedules under the Legal Metrology (General) Rules, 2011 / OIML R76 standards.
+# ---------------------------------------------------------------------------------------------
+
+metadata:
+  status: "DEMONSTRATION_VALUES_ONLY"
+  effective_date: "2024-01-01"
+  version: "1.0-demo"
+  disclaimer: "DO NOT USE FOR LEGAL ENFORCEMENT. FOR PROTOTYPE USE ONLY."
+
+# Maximum Permissible Error (MPE) tiers expressed in verification scale intervals (e)
+# Keyed by accuracy_class and load range expressed in multiples of scale_interval 'e'
+# OIML R76 / General Metrology Demonstration Reference:
+mpe_multipliers:
+  "I":
+    bracket_1: { max_e: 50000, mpe_e: 1.0 }
+    bracket_2: { max_e: 200000, mpe_e: 2.0 }
+    bracket_3: { max_e: null, mpe_e: 3.0 }
+  "II":
+    bracket_1: { max_e: 5000, mpe_e: 1.0 }
+    bracket_2: { max_e: 20000, mpe_e: 2.0 }
+    bracket_3: { max_e: null, mpe_e: 3.0 }
+  "III":
+    bracket_1: { max_e: 500, mpe_e: 1.0 }
+    bracket_2: { max_e: 2000, mpe_e: 2.0 }
+    bracket_3: { max_e: null, mpe_e: 3.0 }
+  "IIII":
+    bracket_1: { max_e: 50, mpe_e: 1.0 }
+    bracket_2: { max_e: 200, mpe_e: 2.0 }
+    bracket_3: { max_e: null, mpe_e: 3.0 }
+
+# Default fallback bracket if accuracy class is non-standard
+default_mpe_e: 2.0
+
+# Instrument-type specific factor modifiers (demonstration values)
+instrument_type_modifiers:
+  "Electronic Weighing Machine": 1.0
+  "Mechanical Weighing Machine": 1.5
+  "Weighbridge / Truck Scale": 1.2
+  "Crane / Hanging Scale": 1.5
+  "Counting Scale": 1.0
+  "Price Computing Scale": 1.0
+  "Precision / Analytical Balance": 0.8
+
+# Test-specific tolerance limits expressed as multiple of MPE at corresponding load
+tolerances:
+  accuracy:
+    multiplier_of_mpe: 1.0
+  repeatability:
+    multiplier_of_mpe: 1.0 # Max range between readings cannot exceed MPE
+  eccentricity:
+    multiplier_of_mpe: 1.0 # Max deviation from center cannot exceed MPE at eccentric test load
+  zero_drift:
+    max_e_multiplier: 0.5  # Zero drift must not exceed 0.5 * e
+  tare:
+    multiplier_of_mpe: 1.0 # Tare error cannot exceed MPE
+  sensitivity:
+    min_indication_ratio: 0.7 # Indication change must be at least 70% of test load
+
+# Physical inspection mandatory compliance flags
+physical_inspection_rules:
+  disallow_tampering: true
+  require_display_functioning: true
+  acceptable_seal_conditions:
+    - "Intact"
+    - "Verified"
+    - "New Seal Applied"
+  unacceptable_seal_conditions:
+    - "Broken"
+    - "Missing"
+    - "Tampered"
+  unacceptable_physical_conditions:
+    - "Severely Damaged"
+    - "Critical Corrosion"

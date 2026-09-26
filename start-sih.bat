@@ -11,6 +11,7 @@ echo.
 
 set "ROOT=%~dp0"
 set "BACKEND=%ROOT%MetroVerify360"
+set "ML_ENGINE=%ROOT%legal_metrology_ml"
 
 echo [1/4] Node.js
 node --version
@@ -31,6 +32,15 @@ if not exist "%BACKEND%" (
     echo ERROR: MetroVerify360 backend folder was not found.
     echo Expected:
     echo %BACKEND%
+    echo.
+    pause
+    exit /b
+)
+if not exist "%ML_ENGINE%" (
+    echo.
+    echo ERROR: Legal Metrology ML Engine was not found.
+    echo Expected:
+    echo %ML_ENGINE%
     echo.
     pause
     exit /b
@@ -72,7 +82,7 @@ echo Starting ASP.NET Backend + ML Engine
 echo ============================================================
 echo.
 
-start "METROVERIFY Backend + ML" cmd /k "cd /d ""%BACKEND%"" && dotnet run"
+start "METROVERIFY Backend + ML" cmd /k "cd /d ""%BACKEND%"" && set ""MlEngine__WorkingDirectory=%ML_ENGINE%"" && dotnet run"
 
 echo.
 echo Waiting for ASP.NET + ML...

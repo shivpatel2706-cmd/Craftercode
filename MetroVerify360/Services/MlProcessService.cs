@@ -28,7 +28,13 @@ public class MlProcessService : IHostedService, IDisposable
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var mlDir = _configuration["MlEngine:WorkingDirectory"] ?? DefaultMlDirectory;
+        var configuredMlDir = _configuration["MlEngine:WorkingDirectory"];
+
+var mlDir = Path.GetFullPath(Path.Combine(
+    AppContext.BaseDirectory,
+    "..", "..", "..", "..",
+    "legal_metrology_ml"
+));
         var mlPort = _configuration["MlEngine:Port"] ?? "8000";
 
         if (!Directory.Exists(mlDir))
