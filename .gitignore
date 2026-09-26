@@ -1,0 +1,26 @@
+# Secrets and machine-specific configuration
+.env
+.env.*
+!.env.example
+**/appsettings*.json
+**/secrets*.json
+**/*credentials*
+
+# Local databases and generated certificates
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.pfx
+**/*.pem
+
+# Build output and installed dependencies
+node_modules/
+dist/
+**/bin/
+**/obj/
+.vs/
+.idea/
+
+# IDE user state
+*.user
+*.suo
