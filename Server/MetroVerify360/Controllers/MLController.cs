@@ -17,7 +17,19 @@ public class MLController : ControllerBase
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<MLController> _logger;
-    private const string MlBaseUrl = "http://127.0.0.1:8000";
+    private readonly string _mlBaseUrl;
+
+public MLController(
+    IHttpClientFactory httpClientFactory,
+    ILogger<MLController> logger,
+    IConfiguration configuration)
+{
+    _httpClientFactory = httpClientFactory;
+    _logger = logger;
+
+    _mlBaseUrl = configuration["MlEngine:BaseUrl"]
+        ?? "http://127.0.0.1:8000";
+}
 
     public MLController(IHttpClientFactory httpClientFactory, ILogger<MLController> logger)
     {
@@ -37,7 +49,7 @@ public class MLController : ControllerBase
         try
         {
             var client = CreateClient();
-            var response = await client.GetAsync($"{MlBaseUrl}/health");
+            var response = await client.GetAsync($"{_mlBaseUrl}/health");
             var content = await response.Content.ReadAsStringAsync();
             return Content(content, "application/json");
         }
@@ -62,7 +74,7 @@ public class MLController : ControllerBase
         try
         {
             var client = CreateClient();
-            var response = await client.GetAsync($"{MlBaseUrl}/model/info");
+            var response = await client.GetAsync($"{_mlBaseUrl}/model/info");
             var content = await response.Content.ReadAsStringAsync();
             return Content(content, "application/json");
         }
@@ -93,7 +105,7 @@ public class MLController : ControllerBase
             requestBody.Headers.ContentType =
                 new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-            var response = await client.PostAsync($"{MlBaseUrl}/predict", requestBody);
+            var response = await client.PostAsync($"{_mlBaseUrl}/predict", requestBody);
             var content = await response.Content.ReadAsStringAsync();
 
             _logger.LogInformation("ML /predict → HTTP {Status}", (int)response.StatusCode);
@@ -128,7 +140,7 @@ public class MLController : ControllerBase
             requestBody.Headers.ContentType =
                 new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-            var response = await client.PostAsync($"{MlBaseUrl}/validate", requestBody);
+            var response = await client.PostAsync($"{_mlBaseUrl}/validate", requestBody);
             var content = await response.Content.ReadAsStringAsync();
             return Content(content, "application/json");
         }
@@ -151,7 +163,7 @@ public class MLController : ControllerBase
             requestBody.Headers.ContentType =
                 new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-            var response = await client.PostAsync($"{MlBaseUrl}/explain", requestBody);
+            var response = await client.PostAsync($"{_mlBaseUrl}/explain", requestBody);
             var content = await response.Content.ReadAsStringAsync();
             return Content(content, "application/json");
         }
