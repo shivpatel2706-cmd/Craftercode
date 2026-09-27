@@ -10,8 +10,9 @@ echo ============================================================
 echo.
 
 set "ROOT=%~dp0"
-set "BACKEND=%ROOT%MetroVerify360"
-set "ML_ENGINE=%ROOT%legal_metrology_ml"
+set "CLIENT=%ROOT%Client"
+set "BACKEND=%ROOT%Server\MetroVerify360"
+set "ML_ENGINE=%ROOT%Server\ML"
 
 echo [1/4] Node.js
 node --version
@@ -46,11 +47,11 @@ if not exist "%ML_ENGINE%" (
     exit /b
 )
 
-if not exist "%ROOT%package.json" (
+if not exist "%CLIENT%\package.json" (
     echo.
     echo ERROR: package.json was not found.
     echo Expected:
-    echo %ROOT%package.json
+    echo %CLIENT%\package.json
     echo.
     pause
     exit /b
@@ -59,12 +60,12 @@ if not exist "%ROOT%package.json" (
 echo Project files found.
 echo.
 
-if not exist "%ROOT%node_modules" (
+if not exist "%CLIENT%\node_modules" (
     echo node_modules not found.
     echo Installing frontend dependencies...
     echo.
 
-    cd /d "%ROOT%"
+    cd /d "%CLIENT%"
     call npm install
 
     if errorlevel 1 (
@@ -82,8 +83,7 @@ echo Starting ASP.NET Backend + ML Engine
 echo ============================================================
 echo.
 
-start "METROVERIFY Backend + ML" cmd /k "cd /d ""%BACKEND%"" && set ""MlEngine__WorkingDirectory=%ML_ENGINE%"" && dotnet run"
-
+start "METROVERIFY Backend + ML" cmd /k "cd /d ""%BACKEND%"" && set ""MlEngine__WorkingDirectory=%ML_ENGINE%"" && dotnet run --urls http://0.0.0.0:5051"
 echo.
 echo Waiting for ASP.NET + ML...
 echo.
@@ -92,7 +92,7 @@ set /a COUNT=0
 
 :WAIT_BACKEND
 
-powershell -NoProfile -Command "try { $r=Invoke-WebRequest -Uri 'http://localhost:5051/api/ml/health' -UseBasicParsing -TimeoutSec 2; if ($r.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }"
+powershell -NoProfile -Command "try { Invoke-WebRequest -Uri 'http://localhost:5051/api/ml/health' -UseBasicParsing -TimeoutSec 5 | Out-Null; exit 0 } catch { exit 1 }"
 
 if not errorlevel 1 goto BACKEND_READY
 
@@ -123,7 +123,7 @@ echo.
 echo Starting React frontend...
 echo.
 
-start "METROVERIFY Frontend" cmd /k "cd /d ""%ROOT%"" && call npm run dev -- --host localhost"
+start "METROVERIFY Frontend" cmd /k "cd /d ""%CLIENT%"" && call npm run dev -- --host 0.0.0.0"
 
 echo.
 echo Waiting for React...
@@ -174,3 +174,4 @@ echo.
 echo Keep the Backend and Frontend windows open.
 echo.
 pause
+

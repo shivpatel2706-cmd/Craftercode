@@ -121,8 +121,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div className="h-16 px-5 flex items-center justify-between border-b border-neutral-150 flex-shrink-0">
           <div className="flex items-center gap-3">
             {/* Logo mark */}
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-200 flex-shrink-0">
-              <Scale className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />
+            <div className="w-9 h-9 rounded-lg bg-neutral-800 flex items-center justify-center flex-shrink-0">
+              <Scale className="w-4.5 h-4.5 text-neutral-950" strokeWidth={2.2} />
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-extrabold text-neutral-900 tracking-tight leading-none">

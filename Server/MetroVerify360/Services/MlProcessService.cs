@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace MetroVerify360.Services;
 
@@ -13,12 +13,9 @@ public class MlProcessService : IHostedService, IDisposable
     private readonly IConfiguration _configuration;
     private Process? _mlProcess;
 
-    // Path to the ML model project root (where src/api/main.py lives)
+    // ML model project root (where src/api/main.py lives).
     private static readonly string DefaultMlDirectory =
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "ml model", "legal_metrology_ml"
-        );
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "ML"));
 
     public MlProcessService(ILogger<MlProcessService> logger, IConfiguration configuration)
     {
@@ -29,12 +26,7 @@ public class MlProcessService : IHostedService, IDisposable
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         var configuredMlDir = _configuration["MlEngine:WorkingDirectory"];
-
-var mlDir = Path.GetFullPath(Path.Combine(
-    AppContext.BaseDirectory,
-    "..", "..", "..", "..",
-    "legal_metrology_ml"
-));
+        var mlDir = Path.GetFullPath(configuredMlDir ?? DefaultMlDirectory);
         var mlPort = _configuration["MlEngine:Port"] ?? "8000";
 
         if (!Directory.Exists(mlDir))
@@ -156,3 +148,4 @@ var mlDir = Path.GetFullPath(Path.Combine(
         GC.SuppressFinalize(this);
     }
 }
+

@@ -25,16 +25,16 @@ export function Table<T>({
   onRowClick,
 }: TableProps<T>) {
   return (
-    <div className="w-full overflow-x-auto rounded-2xl border border-neutral-150 bg-white shadow-card">
+    <div className="w-full overflow-x-auto rounded-xl border border-neutral-150 bg-white shadow-card">
       <table className="w-full text-left text-sm text-neutral-700">
 
         {/* Head */}
-        <thead className="bg-neutral-50 border-b border-neutral-150">
+        <thead className="bg-neutral-150 border-b border-neutral-150">
           <tr>
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={`px-5 py-3.5 text-xs font-semibold text-neutral-500 uppercase tracking-wider whitespace-nowrap ${col.className ?? ''}`}
+                className={`px-4 sm:px-5 py-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider whitespace-nowrap ${col.className ?? ''}`}
               >
                 {col.header}
               </th>
@@ -73,7 +73,7 @@ export function Table<T>({
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-5 py-3.5 text-neutral-800 align-middle ${col.className ?? ''}`}
+                  className={`px-4 sm:px-5 py-3.5 text-neutral-800 align-middle ${col.className ?? ''}`}
                   >
                     {col.render ? col.render(item) : (item as any)[col.key]}
                   </td>

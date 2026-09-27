@@ -27,8 +27,8 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   const shadows = {
     base:     'shadow-card',
-    raised:   'shadow-card-md',
-    floating: 'shadow-card-lg',
+    raised:   'shadow-card',
+    floating: 'shadow-card-md',
   };
 
   const accents = {
@@ -43,7 +43,7 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={`
-        bg-white rounded-2xl border border-neutral-150 overflow-hidden
+        bg-neutral-100 rounded-xl border border-neutral-150 overflow-hidden
         ${shadows[elevation]}
         ${accents[accent]}
         ${className}
@@ -52,13 +52,13 @@ export const Card: React.FC<CardProps> = ({
       {(title || action) && (
         <div
           className={`
-            px-6 py-4 flex items-start justify-between gap-4
+            px-4 sm:px-5 py-4 flex items-start justify-between gap-4
             ${headerBorder ? 'border-b border-neutral-100' : ''}
           `}
         >
           <div className="flex-1 min-w-0">
             {title && (
-              <h3 className="text-base font-bold text-neutral-900 tracking-tight leading-snug">
+              <h3 className="text-base font-semibold text-neutral-900 tracking-tight leading-snug">
                 {title}
               </h3>
             )}
@@ -70,7 +70,7 @@ export const Card: React.FC<CardProps> = ({
         </div>
       )}
 
-      <div className={noPadding ? '' : 'p-6'}>{children}</div>
+      <div className={noPadding ? '' : 'p-4 sm:p-5'}>{children}</div>
     </div>
   );
 };

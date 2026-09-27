@@ -60,12 +60,12 @@ export const Modal: React.FC<ModalProps> = ({
         <div
           className={`
             relative w-full ${widths[maxWidth]}
-            bg-white rounded-2xl shadow-card-xl border border-neutral-150
+            bg-white rounded-xl shadow-card-xl border border-neutral-150
             overflow-hidden animate-scale-in
           `}
         >
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-neutral-100">
+          <div className="flex items-start justify-between gap-4 px-4 sm:px-5 py-4 border-b border-neutral-100">
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-bold text-neutral-900 leading-snug">{title}</h3>
               {subtitle && (
@@ -82,13 +82,13 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
 
           {/* Body */}
-          <div className="px-6 py-5 max-h-[70vh] overflow-y-auto">
+          <div className="px-4 sm:px-5 py-4 max-h-[70vh] overflow-y-auto">
             {children}
           </div>
 
           {/* Footer */}
           {footer && (
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-neutral-100 bg-neutral-50/60">
+            <div className="flex flex-wrap items-center justify-end gap-3 px-4 sm:px-5 py-4 border-t border-neutral-100 bg-neutral-50/60">
               {footer}
             </div>
           )}

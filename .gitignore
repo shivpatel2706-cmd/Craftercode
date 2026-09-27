@@ -1,4 +1,4 @@
-# Secrets and machine-specific configuration
+﻿# Secrets and machine-specific configuration
 .env
 .env.*
 !.env.example

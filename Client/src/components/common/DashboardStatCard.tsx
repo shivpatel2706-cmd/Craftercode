@@ -47,10 +47,19 @@ export const DashboardStatCard: React.FC<DashboardStatCardProps> = ({
   return (
     <div
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      } : undefined}
       className={`
-        group relative bg-white rounded-2xl border border-neutral-150 p-5
+        group relative bg-white rounded-xl border border-neutral-150 p-4 sm:p-5
         shadow-card transition-all duration-200
         hover:shadow-card-md hover:-translate-y-0.5
+        ${onClick ? 'cursor-pointer focus-visible:outline-none' : ''}
         ${c.glow}
         ${onClick ? 'cursor-pointer' : ''}
       `}

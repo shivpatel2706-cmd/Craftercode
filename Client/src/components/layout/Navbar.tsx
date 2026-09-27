@@ -81,8 +81,8 @@ export const Navbar: React.FC<{ onToggleSidebar?: () => void; showSidebarToggle?
             )}
 
             <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-100 group-hover:shadow-blue-200 transition-all duration-200">
-                <Scale className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />
+              <div className="w-9 h-9 rounded-lg bg-neutral-800 flex items-center justify-center transition-colors duration-200">
+                <Scale className="w-4.5 h-4.5 text-neutral-950" strokeWidth={2.2} />
               </div>
               <div className="flex flex-col">
                 <span className="font-extrabold text-base text-neutral-900 tracking-tight leading-none">
