@@ -13,18 +13,26 @@ using MetroVerify360.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Database Configuration
+// ============================================================
+// 1. DATABASE CONFIGURATION
+// ============================================================
+
 var dbProvider = builder.Configuration["DatabaseProvider"] ?? "Sqlite";
-var sqlServerConn = builder.Configuration.GetConnectionString("DefaultConnection") 
+
+var sqlServerConn = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=localhost;Database=MetroVerify360Db;Trusted_Connection=True;TrustServerCertificate=True;";
-var sqliteConn = builder.Configuration.GetConnectionString("SqliteConnection") 
+
+var sqliteConn = builder.Configuration.GetConnectionString("SqliteConnection")
     ?? "Data Source=MetroVerify360.db";
 
 builder.Services.AddDbContext<MetroVerifyDbContext>(options =>
 {
     if (dbProvider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
     {
-        options.UseSqlServer(sqlServerConn, sql => sql.EnableRetryOnFailure(3));
+        options.UseSqlServer(
+            sqlServerConn,
+            sql => sql.EnableRetryOnFailure(3)
+        );
     }
     else
     {
@@ -32,8 +40,12 @@ builder.Services.AddDbContext<MetroVerifyDbContext>(options =>
     }
 });
 
-// 2. Dependency Injection - Repositories & Services
+// ============================================================
+// 2. DEPENDENCY INJECTION - REPOSITORIES & SERVICES
+// ============================================================
+
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IInstrumentService, InstrumentService>();
@@ -47,78 +59,114 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<JwtTokenGenerator>();
 
-// ML Engine — HttpClient with generous timeout for model inference
+// ============================================================
+// 3. ML ENGINE HTTP CLIENT
+// ============================================================
+
 builder.Services.AddHttpClient("MlEngine", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
-// Auto-start / auto-stop the Python FastAPI ML process alongside ASP.NET
+// Automatically start the Python ML engine
 builder.Services.AddHostedService<MlProcessService>();
 
-// 3. JWT Authentication Configuration
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "MetroVerify360_Super_Secret_Statutory_Key_2026_Minimum_32_Chars!";
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "MetroVerify360";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "MetroVerify360Client";
+// ============================================================
+// 4. JWT AUTHENTICATION
+// ============================================================
+
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? "MetroVerify360_Super_Secret_Statutory_Key_2026_Minimum_32_Chars!";
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"]
+    ?? "MetroVerify360";
+
+var jwtAudience = builder.Configuration["Jwt:Audience"]
+    ?? "MetroVerify360Client";
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme =
+        JwtBearerDefaults.AuthenticationScheme;
+
+    options.DefaultChallengeScheme =
+        JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
     options.RequireHttpsMetadata = false;
     options.SaveToken = true;
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+
+        IssuerSigningKey =
+            new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey)
+            ),
+
         ValidateIssuer = true,
         ValidIssuer = jwtIssuer,
+
         ValidateAudience = true,
         ValidAudience = jwtAudience,
+
         ValidateLifetime = true,
+
         ClockSkew = TimeSpan.Zero
     };
 });
 
 builder.Services.AddAuthorization();
 
-// 4. CORS Configuration
+// ============================================================
+// 5. CORS CONFIGURATION
+// ============================================================
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "https://localhost:3000"
+        policy
+            .WithOrigins(
+                "https://craftercode.onrender.com"
             )
-            .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowAnyHeader();
     });
 });
 
-// 5. Add Controllers
+// ============================================================
+// 6. CONTROLLERS
+// ============================================================
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.PropertyNamingPolicy =
+            System.Text.Json.JsonNamingPolicy.CamelCase;
+
+        options.JsonSerializerOptions.DefaultIgnoreCondition =
+            System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
 
-// 6. Swagger / OpenAPI with Bearer Auth
+// ============================================================
+// 7. SWAGGER / OPENAPI
+// ============================================================
+
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "METROVERIFY 360 API",
         Version = "v1",
-        Description = "Statutory REST API for Online Verification System of Weighing and Measuring Instruments under Legal Metrology Act 2009.",
+        Description =
+            "Statutory REST API for Online Verification System of Weighing and Measuring Instruments under Legal Metrology Act 2009.",
+
         Contact = new OpenApiContact
         {
             Name = "Legal Metrology Digital Directorate",
@@ -128,7 +176,9 @@ builder.Services.AddSwaggerGen(c =>
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Description =
+            "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
@@ -146,70 +196,138 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
+
             Array.Empty<string>()
         }
     });
 });
 
+// ============================================================
+// BUILD APPLICATION
+// ============================================================
+
 var app = builder.Build();
 
-// 7. HTTP Request Pipeline
+// ============================================================
+// 8. CORS
+// IMPORTANT: Only ONE CORS middleware call.
+// ============================================================
+
+app.UseCors("Frontend");
+
+// ============================================================
+// 9. GLOBAL EXCEPTION HANDLING
+// ============================================================
+
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-// Always enable Swagger for testing and review
+// ============================================================
+// 10. SWAGGER
+// ============================================================
+
 app.UseSwagger();
+
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "METROVERIFY 360 API v1");
+    c.SwaggerEndpoint(
+        "/swagger/v1/swagger.json",
+        "METROVERIFY 360 API v1"
+    );
+
     c.RoutePrefix = "swagger";
 });
 
-app.UseCors("AllowFrontend");
+// ============================================================
+// 11. REPORTS STATIC FILES
+// ============================================================
 
-// Ensure Reports directory exists and can serve generated PDFs
-var reportsPath = Path.Combine(app.Environment.ContentRootPath, "Reports");
+var reportsPath =
+    Path.Combine(
+        app.Environment.ContentRootPath,
+        "Reports"
+    );
+
 if (!Directory.Exists(reportsPath))
 {
     Directory.CreateDirectory(reportsPath);
 }
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(reportsPath),
-    RequestPath = "/reports"
-});
+
+app.UseStaticFiles(
+    new StaticFileOptions
+    {
+        FileProvider =
+            new PhysicalFileProvider(reportsPath),
+
+        RequestPath = "/reports"
+    }
+);
+
+// ============================================================
+// 12. AUTHENTICATION & AUTHORIZATION
+// ============================================================
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+// ============================================================
+// 13. CONTROLLERS
+// ============================================================
+
 app.MapControllers();
 
-// Health check / root endpoint
+// ============================================================
+// 14. ROOT HEALTH / SYSTEM ENDPOINT
+// ============================================================
+
 app.MapGet("/", () => Results.Ok(new
 {
     system = "METROVERIFY 360",
     version = "1.0.0",
     status = "Operational",
-    statutoryFramework = "Legal Metrology Act 2009 & General Rules 2011",
+    statutoryFramework =
+        "Legal Metrology Act 2009 & General Rules 2011",
     documentation = "/swagger"
 }));
 
-// 8. Auto-migrate and Seed Demo Data
+// ============================================================
+// 15. DATABASE INITIALIZATION & SEEDING
+// ============================================================
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var logger = services.GetRequiredService<ILogger<Program>>();
+
+    var logger =
+        services.GetRequiredService<ILogger<Program>>();
+
     try
     {
-        var context = services.GetRequiredService<MetroVerifyDbContext>();
+        var context =
+            services.GetRequiredService<MetroVerifyDbContext>();
+
         await context.Database.EnsureCreatedAsync();
+
         await DbInitializer.SeedAsync(context);
-        logger.LogInformation("METROVERIFY 360 Database initialized and seeded successfully.");
+
+        logger.LogInformation(
+            "METROVERIFY 360 Database initialized and seeded successfully."
+        );
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "An error occurred while initializing or seeding the database.");
+        logger.LogError(
+            ex,
+            "An error occurred while initializing or seeding the database."
+        );
     }
 }
 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5051";
+// ============================================================
+// 16. RENDER PORT
+// ============================================================
+
+var port =
+    Environment.GetEnvironmentVariable("PORT")
+    ?? "5051";
+
 app.Run($"http://0.0.0.0:{port}");
