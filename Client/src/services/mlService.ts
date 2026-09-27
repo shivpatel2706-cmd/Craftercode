@@ -1,12 +1,13 @@
 /**
  * ML Service — communicates with the Legal Metrology ML Verification Engine
- * via the ASP.NET proxy at /api/ml  (which internally calls Python on port 8000).
- * The frontend only needs ONE server running: dotnet run.
+ * via the ASP.NET proxy at /api/ml.
+ *
+ * Frontend → ASP.NET backend → Python ML Engine
  */
-import { apiClient } from './api';
 
-// Re-use the same Axios instance that already points at http://localhost:5051/api
-// All ML calls go through  /api/ml/*  on the ASP.NET backend.
+import { apiClient, API_BASE_URL } from './api';
+
+// All ML calls go through /api/ml/* on the ASP.NET backend.
 const ML_PREFIX = '/ml';
 
 /* ─── Input Schema ─────────────────────────────────────────────────────────── */
@@ -26,18 +27,20 @@ export interface MLVerificationPayload {
   repair_count?: number;
   last_verification_days_ago?: number;
 
-  // Accuracy Test Loads & Readings (~10%, ~50%, ~100% capacity)
+  // Accuracy Test Loads & Readings
   reference_load_1: number;
   observed_reading_1: number;
   error_1?: number;
+
   reference_load_2: number;
   observed_reading_2: number;
   error_2?: number;
+
   reference_load_3: number;
   observed_reading_3: number;
   error_3?: number;
 
-  // Repeatability Readings (at ~50% capacity)
+  // Repeatability Readings
   repeatability_reading_1: number;
   repeatability_reading_2: number;
   repeatability_reading_3: number;
@@ -56,12 +59,12 @@ export interface MLVerificationPayload {
   final_zero: number;
   zero_drift?: number;
 
-  // Tare Test (optional)
+  // Tare Test
   tare_reference?: number;
   tare_observed?: number;
   tare_error?: number;
 
-  // Sensitivity Test (optional)
+  // Sensitivity Test
   sensitivity_test_load?: number;
   sensitivity_indication_change?: number;
   sensitivity_error?: number;
@@ -101,6 +104,7 @@ export interface MLPredictionResponse {
   rule_violations?: string[];
   explanation: MLFeatureExplanation[];
   request_id?: string;
+
   // Present when data is incomplete
   missing_fields?: string[];
   validation_errors?: string[];
@@ -130,39 +134,94 @@ export interface MLModelInfoResponse {
 export const mlService = {
   /**
    * Check whether the ML engine is running and models are loaded.
-   * Calls GET /api/ml/health on the ASP.NET backend.
+   *
+   * Request:
+   * GET /api/ml/health
+   *
+   * Frontend:
+   * /api/ml/health
+   *
+   * ASP.NET:
+   * /api/ml/health
+   *
+   * Python ML:
+   * /health
    */
   async checkHealth(): Promise<MLHealthResponse | null> {
     try {
-      const res = await apiClient.get<MLHealthResponse>(`${ML_PREFIX}/health`);
+      const healthUrl = `${API_BASE_URL}${ML_PREFIX}/health`;
+
+      console.log('────────────────────────────────────');
+      console.log('ML HEALTH CHECK');
+      console.log('URL:', healthUrl);
+
+      const res = await apiClient.get<MLHealthResponse>(
+        `${ML_PREFIX}/health`
+      );
+
+      console.log('HTTP STATUS:', res.status);
+      console.log('RESPONSE:', res.data);
+
+      if (
+        res.data &&
+        res.data.status === 'healthy' &&
+        res.data.model_loaded === true
+      ) {
+        console.log('✅ ML ENGINE ONLINE');
+      } else {
+        console.warn('⚠️ ML ENGINE RESPONSE IS NOT HEALTHY');
+      }
+
+      console.log('────────────────────────────────────');
+
       return res.data;
-    } catch {
+    } catch (error) {
+      console.error('────────────────────────────────────');
+      console.error('❌ ML HEALTH CHECK FAILED');
+      console.error('URL:', `${API_BASE_URL}${ML_PREFIX}/health`);
+      console.error('ERROR:', error);
+      console.error('────────────────────────────────────');
+
       return null;
     }
   },
 
   /**
    * Retrieve model metadata and benchmark performance metrics.
-   * Calls GET /api/ml/model/info on the ASP.NET backend.
+   *
+   * GET /api/ml/model/info
    */
   async getModelInfo(): Promise<MLModelInfoResponse | null> {
     try {
-      const res = await apiClient.get<MLModelInfoResponse>(`${ML_PREFIX}/model/info`);
+      const res = await apiClient.get<MLModelInfoResponse>(
+        `${ML_PREFIX}/model/info`
+      );
+
       return res.data;
-    } catch {
+    } catch (error) {
+      console.error('ML MODEL INFO FAILED:', error);
       return null;
     }
   },
 
   /**
    * Run the full AI/ML verification pipeline:
-   * Regulatory Rules Engine → CatBoost ML → SHAP Explainability → Decision Policy.
-   * Calls POST /api/ml/predict on the ASP.NET backend (proxied internally to Python).
+   *
+   * Regulatory Rules Engine
+   * → CatBoost ML
+   * → SHAP Explainability
+   * → Decision Policy
+   *
+   * POST /api/ml/predict
    */
   async predictVerification(
     payload: MLVerificationPayload
   ): Promise<MLPredictionResponse> {
-    const res = await apiClient.post<MLPredictionResponse>(`${ML_PREFIX}/predict`, payload);
+    const res = await apiClient.post<MLPredictionResponse>(
+      `${ML_PREFIX}/predict`,
+      payload
+    );
+
     return res.data;
   },
 };
