@@ -12,6 +12,8 @@
 **/*.sqlite3
 **/*.pfx
 **/*.pem
+**/*.db-wal
+**/*.db-shm
 
 # Build output and installed dependencies
 node_modules/
