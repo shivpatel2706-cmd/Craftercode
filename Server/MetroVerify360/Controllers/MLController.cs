@@ -3,13 +3,20 @@ using Microsoft.AspNetCore.Mvc;
 namespace MetroVerify360.Controllers;
 
 /// <summary>
-/// Proxies all AI/ML verification requests to the internal Python FastAPI
-/// ML engine running on http://127.0.0.1:8000.
-/// 
-/// Frontend calls  →  POST /api/ml/predict  (ASP.NET, port 5051)
-/// ASP.NET proxies →  POST http://127.0.0.1:8000/predict  (Python, internal)
-/// 
-/// This means the user only needs ONE running server (dotnet run).
+/// Proxies all AI/ML verification requests to the Python FastAPI
+/// ML engine.
+///
+/// Frontend calls:
+///     /api/ml/*
+///
+/// ASP.NET proxies to:
+///     MlEngine:BaseUrl
+///
+/// Local development:
+///     http://127.0.0.1:8000
+///
+/// Production / Render:
+///     https://ml-engine-hw7a.onrender.com
 /// </summary>
 [ApiController]
 [Route("api/ml")]
@@ -19,79 +26,113 @@ public class MLController : ControllerBase
     private readonly ILogger<MLController> _logger;
     private readonly string _mlBaseUrl;
 
-public MLController(
-    IHttpClientFactory httpClientFactory,
-    ILogger<MLController> logger,
-    IConfiguration configuration)
-{
-    _httpClientFactory = httpClientFactory;
-    _logger = logger;
-
-    _mlBaseUrl = configuration["MlEngine:BaseUrl"]
-        ?? "http://127.0.0.1:8000";
-}
-
-    public MLController(IHttpClientFactory httpClientFactory, ILogger<MLController> logger)
+    public MLController(
+        IHttpClientFactory httpClientFactory,
+        ILogger<MLController> logger,
+        IConfiguration configuration)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+
+        // Render can override this using:
+        // MlEngine__BaseUrl=https://ml-engine-hw7a.onrender.com
+        //
+        // Local development falls back to the local Python ML engine.
+        _mlBaseUrl = configuration["MlEngine:BaseUrl"]
+            ?? "http://127.0.0.1:8000";
     }
 
-    private HttpClient CreateClient() =>
-        _httpClientFactory.CreateClient("MlEngine");
+    private HttpClient CreateClient()
+    {
+        return _httpClientFactory.CreateClient("MlEngine");
+    }
 
-    // ── Health ───────────────────────────────────────────────────────────────
+    // ── Health ──────────────────────────────────────────────────────────────
 
-    /// <summary>GET /api/ml/health — Check ML engine status.</summary>
+    /// <summary>
+    /// GET /api/ml/health
+    /// Checks whether the ML engine is healthy and models are loaded.
+    /// </summary>
     [HttpGet("health")]
     public async Task<IActionResult> Health()
     {
         try
         {
             var client = CreateClient();
-            var response = await client.GetAsync($"{_mlBaseUrl}/health");
+
+            var response = await client.GetAsync(
+                $"{_mlBaseUrl}/health"
+            );
+
             var content = await response.Content.ReadAsStringAsync();
-            return Content(content, "application/json");
+
+            return Content(
+                content,
+                "application/json"
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogWarning("ML engine health check failed: {Msg}", ex.Message);
+            _logger.LogWarning(
+                "ML engine health check failed: {Msg}",
+                ex.Message
+            );
+
             return StatusCode(503, new
             {
                 status = "unavailable",
-                message = "ML engine is starting up or unreachable. Retry in a few seconds.",
+                message =
+                    "ML engine is starting up or unreachable. Retry in a few seconds.",
                 detail = ex.Message
             });
         }
     }
 
-    // ── Model Info ───────────────────────────────────────────────────────────
+    // ── Model Info ──────────────────────────────────────────────────────────
 
-    /// <summary>GET /api/ml/model/info — Model version and benchmark metrics.</summary>
+    /// <summary>
+    /// GET /api/ml/model/info
+    /// Returns ML model version and benchmark information.
+    /// </summary>
     [HttpGet("model/info")]
     public async Task<IActionResult> ModelInfo()
     {
         try
         {
             var client = CreateClient();
-            var response = await client.GetAsync($"{_mlBaseUrl}/model/info");
+
+            var response = await client.GetAsync(
+                $"{_mlBaseUrl}/model/info"
+            );
+
             var content = await response.Content.ReadAsStringAsync();
-            return Content(content, "application/json");
+
+            return Content(
+                content,
+                "application/json"
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogWarning("ML model info failed: {Msg}", ex.Message);
-            return StatusCode(503, new { message = "ML engine unavailable.", detail = ex.Message });
+            _logger.LogWarning(
+                "ML model info failed: {Msg}",
+                ex.Message
+            );
+
+            return StatusCode(503, new
+            {
+                message = "ML engine unavailable.",
+                detail = ex.Message
+            });
         }
     }
 
-    // ── Predict ──────────────────────────────────────────────────────────────
+    // ── Predict ─────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// POST /api/ml/predict — Full AI/ML verification pipeline.
-    /// Proxies the raw JSON body directly to the Python engine.
-    /// Returns: prediction, confidence, risk_score, rules_engine_result,
-    ///          final_result, rule_violations, SHAP explanation.
+    /// POST /api/ml/predict
+    ///
+    /// Proxies the verification request directly to the Python ML engine.
     /// </summary>
     [HttpPost("predict")]
     public async Task<IActionResult> Predict()
@@ -100,76 +141,153 @@ public MLController(
         {
             var client = CreateClient();
 
-            // Forward the raw request body directly to Python
+            // Forward the raw JSON request body directly to Python.
             using var requestBody = new StreamContent(Request.Body);
-            requestBody.Headers.ContentType =
-                new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-            var response = await client.PostAsync($"{_mlBaseUrl}/predict", requestBody);
+            requestBody.Headers.ContentType =
+                new System.Net.Http.Headers.MediaTypeHeaderValue(
+                    "application/json"
+                );
+
+            var response = await client.PostAsync(
+                $"{_mlBaseUrl}/predict",
+                requestBody
+            );
+
             var content = await response.Content.ReadAsStringAsync();
 
-            _logger.LogInformation("ML /predict → HTTP {Status}", (int)response.StatusCode);
-            return Content(content, "application/json", System.Text.Encoding.UTF8);
+            _logger.LogInformation(
+                "ML /predict → HTTP {Status}",
+                (int)response.StatusCode
+            );
+
+            return Content(
+                content,
+                "application/json",
+                System.Text.Encoding.UTF8
+            );
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError("ML engine unreachable: {Msg}", ex.Message);
+            _logger.LogError(
+                "ML engine unreachable: {Msg}",
+                ex.Message
+            );
+
             return StatusCode(503, new
             {
-                message = "ML Verification Engine is not yet ready. It starts automatically with the server — please wait 5–10 seconds and retry.",
+                message =
+                    "ML Verification Engine is not yet ready. Please wait a few seconds and retry.",
                 detail = ex.Message
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error proxying ML predict request.");
-            return StatusCode(500, new { message = "Internal server error during ML inference.", detail = ex.Message });
+            _logger.LogError(
+                ex,
+                "Unexpected error proxying ML predict request."
+            );
+
+            return StatusCode(500, new
+            {
+                message =
+                    "Internal server error during ML inference.",
+                detail = ex.Message
+            });
         }
     }
 
-    // ── Validate ─────────────────────────────────────────────────────────────
+    // ── Validate ────────────────────────────────────────────────────────────
 
-    /// <summary>POST /api/ml/validate — Physical sanity and regulatory pre-check.</summary>
+    /// <summary>
+    /// POST /api/ml/validate
+    /// Performs physical sanity and regulatory validation.
+    /// </summary>
     [HttpPost("validate")]
     public async Task<IActionResult> Validate()
     {
         try
         {
             var client = CreateClient();
-            using var requestBody = new StreamContent(Request.Body);
-            requestBody.Headers.ContentType =
-                new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-            var response = await client.PostAsync($"{_mlBaseUrl}/validate", requestBody);
+            using var requestBody = new StreamContent(Request.Body);
+
+            requestBody.Headers.ContentType =
+                new System.Net.Http.Headers.MediaTypeHeaderValue(
+                    "application/json"
+                );
+
+            var response = await client.PostAsync(
+                $"{_mlBaseUrl}/validate",
+                requestBody
+            );
+
             var content = await response.Content.ReadAsStringAsync();
-            return Content(content, "application/json");
+
+            return Content(
+                content,
+                "application/json"
+            );
         }
         catch (Exception ex)
         {
-            return StatusCode(503, new { message = "ML engine unavailable.", detail = ex.Message });
+            _logger.LogError(
+                "ML validation request failed: {Msg}",
+                ex.Message
+            );
+
+            return StatusCode(503, new
+            {
+                message = "ML engine unavailable.",
+                detail = ex.Message
+            });
         }
     }
 
-    // ── Explain ──────────────────────────────────────────────────────────────
+    // ── Explain ─────────────────────────────────────────────────────────────
 
-    /// <summary>POST /api/ml/explain — Detailed SHAP local feature attributions.</summary>
+    /// <summary>
+    /// POST /api/ml/explain
+    /// Returns detailed SHAP feature attributions.
+    /// </summary>
     [HttpPost("explain")]
     public async Task<IActionResult> Explain()
     {
         try
         {
             var client = CreateClient();
-            using var requestBody = new StreamContent(Request.Body);
-            requestBody.Headers.ContentType =
-                new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-            var response = await client.PostAsync($"{_mlBaseUrl}/explain", requestBody);
+            using var requestBody = new StreamContent(Request.Body);
+
+            requestBody.Headers.ContentType =
+                new System.Net.Http.Headers.MediaTypeHeaderValue(
+                    "application/json"
+                );
+
+            var response = await client.PostAsync(
+                $"{_mlBaseUrl}/explain",
+                requestBody
+            );
+
             var content = await response.Content.ReadAsStringAsync();
-            return Content(content, "application/json");
+
+            return Content(
+                content,
+                "application/json"
+            );
         }
         catch (Exception ex)
         {
-            return StatusCode(503, new { message = "ML engine unavailable.", detail = ex.Message });
+            _logger.LogError(
+                "ML explanation request failed: {Msg}",
+                ex.Message
+            );
+
+            return StatusCode(503, new
+            {
+                message = "ML engine unavailable.",
+                detail = ex.Message
+            });
         }
     }
 }
