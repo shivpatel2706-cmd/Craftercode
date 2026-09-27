@@ -60,9 +60,13 @@ public class MlProcessService : IHostedService, IDisposable
             mlDir,
             mlPort);
 
-        var pythonCommand = OperatingSystem.IsWindows()
-            ? "python"
-            : "python3";
+        var venvPython = OperatingSystem.IsWindows()
+    ? Path.Combine(mlDir, ".venv", "Scripts", "python.exe")
+    : Path.Combine(mlDir, ".venv", "bin", "python");
+
+var pythonCommand = File.Exists(venvPython)
+    ? venvPython
+    : (OperatingSystem.IsWindows() ? "python" : "python3");
 
         var psi = new ProcessStartInfo
         {
