@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Net.Sockets;
 
 namespace MetroVerify360.Services;
 
@@ -15,9 +16,14 @@ public class MlProcessService : IHostedService, IDisposable
 
     // ML model project root (where src/api/main.py lives).
     private static readonly string DefaultMlDirectory =
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "ML"));
+        Path.GetFullPath(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "..", "..", "..", "..", "ML"));
 
-    public MlProcessService(ILogger<MlProcessService> logger, IConfiguration configuration)
+    public MlProcessService(
+        ILogger<MlProcessService> logger,
+        IConfiguration configuration)
     {
         _logger = logger;
         _configuration = configuration;
@@ -26,28 +32,45 @@ public class MlProcessService : IHostedService, IDisposable
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         var configuredMlDir = _configuration["MlEngine:WorkingDirectory"];
-        var mlDir = Path.GetFullPath(configuredMlDir ?? DefaultMlDirectory);
+        var mlDir = Path.GetFullPath(
+            configuredMlDir ?? DefaultMlDirectory);
+
         var mlPort = _configuration["MlEngine:Port"] ?? "8000";
 
         if (!Directory.Exists(mlDir))
         {
             _logger.LogWarning(
-                "ML engine directory not found at '{Dir}'. ML analysis will be unavailable.",
+                "ML engine directory not found at '{Dir}'. " +
+                "ML analysis will be unavailable.",
                 mlDir);
+
             return;
         }
 
-        // Kill any stale process already using port 8000
-        await KillProcessOnPort(mlPort, cancellationToken);
+        // Only attempt to clear the port if something is actually
+        // listening on it. This avoids Windows-specific commands such
+        // as cmd/netstat/findstr and works on Linux as well.
+        await WaitForPortToBeFree(
+            "127.0.0.1",
+            int.Parse(mlPort),
+            cancellationToken);
 
         _logger.LogInformation(
             "Starting ML Verification Engine from '{Dir}' on port {Port}...",
-            mlDir, mlPort);
+            mlDir,
+            mlPort);
+
+        var pythonCommand = OperatingSystem.IsWindows()
+            ? "python"
+            : "python3";
 
         var psi = new ProcessStartInfo
         {
-            FileName = "python",
-            Arguments = $"-m uvicorn src.api.main:app --host 127.0.0.1 --port {mlPort}",
+            FileName = pythonCommand,
+            Arguments =
+                $"-m uvicorn src.api.main:app " +
+                $"--host 127.0.0.1 --port {mlPort}",
+
             WorkingDirectory = mlDir,
             UseShellExecute = false,
             RedirectStandardOutput = true,
@@ -57,37 +80,57 @@ public class MlProcessService : IHostedService, IDisposable
 
         try
         {
-            _mlProcess = new Process { StartInfo = psi, EnableRaisingEvents = true };
+            _mlProcess = new Process
+            {
+                StartInfo = psi,
+                EnableRaisingEvents = true
+            };
 
             _mlProcess.OutputDataReceived += (_, e) =>
             {
                 if (!string.IsNullOrWhiteSpace(e.Data))
                     _logger.LogDebug("[ML] {Line}", e.Data);
             };
+
             _mlProcess.ErrorDataReceived += (_, e) =>
             {
                 if (!string.IsNullOrWhiteSpace(e.Data))
                     _logger.LogDebug("[ML] {Line}", e.Data);
             };
+
             _mlProcess.Exited += (_, _) =>
-                _logger.LogWarning("ML engine process exited unexpectedly.");
+                _logger.LogWarning(
+                    "ML engine process exited unexpectedly.");
 
             _mlProcess.Start();
+
             _mlProcess.BeginOutputReadLine();
             _mlProcess.BeginErrorReadLine();
 
-            // Give it a moment to boot
+            // Give the Python service time to boot.
             await Task.Delay(3000, cancellationToken);
 
+            if (_mlProcess.HasExited)
+            {
+                _logger.LogError(
+                    "ML engine exited during startup.");
+
+                return;
+            }
+
             _logger.LogInformation(
-                "ML Verification Engine started (PID {Pid}) on http://127.0.0.1:{Port}",
-                _mlProcess.Id, mlPort);
+                "ML Verification Engine started (PID {Pid}) " +
+                "on http://127.0.0.1:{Port}",
+                _mlProcess.Id,
+                mlPort);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
-                "Failed to start ML engine. Ensure Python and uvicorn are installed. " +
-                "ML analysis endpoints will return 503.");
+            _logger.LogError(
+                ex,
+                "Failed to start ML engine. Ensure Python and " +
+                "uvicorn are installed. ML analysis endpoints " +
+                "will return 503.");
         }
     }
 
@@ -95,51 +138,70 @@ public class MlProcessService : IHostedService, IDisposable
     {
         if (_mlProcess is { HasExited: false })
         {
-            _logger.LogInformation("Stopping ML Verification Engine (PID {Pid})...", _mlProcess.Id);
+            _logger.LogInformation(
+                "Stopping ML Verification Engine (PID {Pid})...",
+                _mlProcess.Id);
+
             try
             {
                 _mlProcess.Kill(entireProcessTree: true);
                 _mlProcess.WaitForExit(3000);
-                _logger.LogInformation("ML engine stopped.");
+
+                _logger.LogInformation(
+                    "ML engine stopped.");
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error while stopping ML engine.");
+                _logger.LogWarning(
+                    ex,
+                    "Error while stopping ML engine.");
             }
         }
+
         return Task.CompletedTask;
     }
 
-    private static async Task KillProcessOnPort(string port, CancellationToken ct)
+    private async Task WaitForPortToBeFree(
+        string host,
+        int port,
+        CancellationToken cancellationToken)
     {
-        try
+        for (var attempt = 0; attempt < 10; attempt++)
         {
-            // Windows: find PID using port, then kill it
-            var findPsi = new ProcessStartInfo
+            try
             {
-                FileName = "cmd",
-                Arguments = $"/c netstat -ano | findstr :{port}",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true,
-            };
-            using var findProc = Process.Start(findPsi);
-            if (findProc is null) return;
-            var output = await findProc.StandardOutput.ReadToEndAsync(ct);
-            await findProc.WaitForExitAsync(ct);
+                using var client = new TcpClient();
 
-            foreach (var line in output.Split('\n'))
-            {
-                var parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 5 && parts[1].Contains($":{port}") &&
-                    int.TryParse(parts[^1], out var pid) && pid > 0)
+                var connectTask = client.ConnectAsync(host, port);
+
+                await Task.WhenAny(
+                    connectTask,
+                    Task.Delay(300, cancellationToken));
+
+                if (!connectTask.IsCompletedSuccessfully)
                 {
-                    try { Process.GetProcessById(pid).Kill(); } catch { }
-                    break;
+                    // Nothing is listening on the port.
+                    return;
                 }
+
+                _logger.LogWarning(
+                    "Port {Port} is currently in use. " +
+                    "Waiting for it to become available...",
+                    port);
+
+                await Task.Delay(500, cancellationToken);
+            }
+            catch
+            {
+                // Connection failed = nothing is listening.
+                return;
             }
         }
-        catch { /* Non-critical */ }
+
+        _logger.LogWarning(
+            "Port {Port} may still be in use. " +
+            "Continuing with ML engine startup.",
+            port);
     }
 
     public void Dispose()
@@ -148,4 +210,3 @@ public class MlProcessService : IHostedService, IDisposable
         GC.SuppressFinalize(this);
     }
 }
-
